@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IUser, IUserFilter } from './users.types';
+import { UserDto, UserFilterDto } from './users.dto';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +15,7 @@ export class UsersService {
     { id: 9, name: 'Lucas', email: 'lucas@example.com', role: 'seller' },
   ];
 
-  findAll(query: IUserFilter) {
+  findAll(query: UserFilterDto) {
     return this.users.filter((user) => {
       return Object.keys(query).every((key) => {
         if (query[key] !== undefined && query[key] !== null) {
@@ -31,7 +31,7 @@ export class UsersService {
     return user;
   }
 
-  create(user: IUser) {
+  create(user: UserDto) {
     const lastId = [...this.users].sort((a, b) => b.id - a.id);
 
     const newUser = {
@@ -42,7 +42,7 @@ export class UsersService {
     return newUser;
   }
 
-  update(id: number, updatedUser: IUserFilter) {
+  update(id: number, updatedUser: UserFilterDto) {
     this.users = this.users.map((user) => {
       if (user.id === id) {
         return { ...user, ...updatedUser };
