@@ -1,0 +1,56 @@
+version: '3.9'
+services:
+  # frontend:
+  #   build: ./front-end
+  #   ports:
+  #     - 3000:3000
+  #   platform: linux/x86_64
+  #   working_dir: /app-frontend
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   # Os `healthcheck` devem garantir que a aplicação
+  #   # está operacional, antes de liberar o container
+  #   healthcheck:
+  #     test: ['CMD', 'lsof', '-t', '-i:3000'] # Caso utilize outra porta interna para o front, altere ela aqui também
+  #     timeout: 10s
+  #     retries: 5
+  # backend:
+  #   container_name: app_backend
+  #   build: ./back-end
+  #   working_dir: /backend
+  #   volumes: 
+  #     - ./back-end/src:/backend/src
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     - APP_PORT=3001
+  #     - DB_USER=root
+  #     - DB_PASS=password
+  #     - DB_HOST=db
+  #     - DB_PORT=3306
+  #   ports:
+  #     - 3001:3001
+  db:
+    image: postgres:14
+    container_name: db_vprm
+    platform: linux/x86_64
+    ports:
+      - 5500:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=vprm_db
+    restart: 'always'
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"] # Deve aguardar o banco ficar operacional
+      timeout: 10s
+      retries: 5
+    volumes:
+      - data:/var/lib/postgresql/data # Volume para persistir dados
+    cap_add:
+      - SYS_NICE # Deve omitir alertas menores
+
+volumes:
+  data: # Definindo o volume para persistir os dados entre reinícios
