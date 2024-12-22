@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserDto, UserFilterDto } from './users.dto';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class UsersService {
   ];
 
   findAll(query: UserFilterDto) {
-    return this.users.filter((user) => {
+    const filteredUsers = this.users.filter((user) => {
       return Object.keys(query).every((key) => {
         if (query[key] !== undefined && query[key] !== null) {
           return user[key] === query[key];
@@ -24,10 +24,25 @@ export class UsersService {
         return true;
       });
     });
+
+    if (query.role && filteredUsers.length === 0) {
+      throw new NotFoundException(`Users with role ${query.role} not found`);
+    }
+
+    if (query.name && filteredUsers.length === 0) {
+      throw new NotFoundException(`Users with name ${query.name} not found`);
+    }
+
+    if (query.email && filteredUsers.length === 0) {
+      throw new NotFoundException(`Users with email ${query.email} not found`);
+    }
+
+    return filteredUsers;
   }
 
   findOne(id: number) {
     const user = this.users.find((user) => user.id === id);
+    if (!user) throw new NotFoundException(`User not found`);
     return user;
   }
 
