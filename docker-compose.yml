@@ -15,26 +15,10 @@ services:
   #     test: ['CMD', 'lsof', '-t', '-i:3000'] # Caso utilize outra porta interna para o front, altere ela aqui também
   #     timeout: 10s
   #     retries: 5
-  # backend:
-  #   container_name: app_backend
-  #   build: ./back-end
-  #   working_dir: /backend
-  #   volumes: 
-  #     - ./back-end/src:/backend/src
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   environment:
-  #     - APP_PORT=3001
-  #     - DB_USER=root
-  #     - DB_PASS=password
-  #     - DB_HOST=db
-  #     - DB_PORT=3306
-  #   ports:
-  #     - 3001:3001
+
   db:
     image: postgres:14
-    container_name: db_vprm
+    container_name: vprm_db
     platform: linux/x86_64
     ports:
       - 5500:5432
@@ -51,6 +35,35 @@ services:
       - data:/var/lib/postgresql/data # Volume para persistir dados
     cap_add:
       - SYS_NICE # Deve omitir alertas menores
+    networks:
+      - vprm-network
+    
+  backend:
+    build: .  # Isso faz o Docker Compose usar o Dockerfile na raiz do projeto
+    container_name: vprm_backend
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./:/usr/src/app
+      - ./.env:/usr/src/app/.env
+    working_dir: /usr/src/app
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]  # Altere a URL para o endpoint correto do seu app
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 10s
+    networks:
+      - vprm-network
+
+networks:
+  vprm-network:
+    driver: bridge  # Tipo de rede, "bridge" é a configuração padrão para comunicação entre containers
 
 volumes:
   data: # Definindo o volume para persistir os dados entre reinícios
