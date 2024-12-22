@@ -1,51 +1,32 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
-
-// DTO = Data Transfer Objects
-// DTOs are used to define the shape of data that is passed between different parts of the application
+import { Role } from '@prisma/client';
+import { IsEmail, IsEnum, IsNotEmpty, IsString, Length } from 'class-validator';
 
 export class UserDto {
-  id: number;
+  id: string;
 
   @IsString()
   @IsNotEmpty()
+  @Length(3, 50)
   name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Length(3, 20)
+  username: string;
 
   @IsEmail()
   email: string;
 
-  @IsEnum(
-    [
-      'admin',
-      'manager',
-      'moderator',
-      'seller',
-      'partner',
-      'affiliate',
-      'guest',
-      'assistant',
-      'support',
-      'investor',
-      'bot',
-      'regular',
-    ],
-    {
-      message: 'Invalid role',
-    },
-  )
-  role:
-    | 'admin'
-    | 'manager'
-    | 'moderator'
-    | 'seller'
-    | 'partner'
-    | 'affiliate'
-    | 'guest'
-    | 'assistant'
-    | 'support'
-    | 'investor'
-    | 'bot'
-    | 'regular';
+  @IsNotEmpty()
+  @IsString()
+  @Length(8, 20)
+  password: string;
+
+  @IsEnum(Role, {
+    message: 'Invalid role',
+  })
+  role: Role;
 }
 
 export class UserFilterDto extends PartialType(UserDto) {}
