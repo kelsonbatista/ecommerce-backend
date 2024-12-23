@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { UserDto, UserFilterDto } from './users.dto';
@@ -16,7 +20,16 @@ export class UsersService {
       role: createUserDto.role,
     };
 
-    return this.databaseService.user.create({ data });
+    try {
+      return await this.databaseService.user.create({ data });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Username or email already exists');
+        }
+      }
+      throw error;
+    }
   }
 
   async findAll(query: UserFilterDto) {
@@ -48,17 +61,17 @@ export class UsersService {
   }
 
   async findOne(id: string) {
-    return this.databaseService.user.findUnique({ where: { id } });
+    return await this.databaseService.user.findUnique({ where: { id } });
   }
 
   async update(id: string, updateUserDto: Prisma.UserUpdateInput) {
-    return this.databaseService.user.update({
+    return await this.databaseService.user.update({
       where: { id },
       data: updateUserDto,
     });
   }
 
   async remove(id: string) {
-    return this.databaseService.user.delete({ where: { id } });
+    return await this.databaseService.user.delete({ where: { id } });
   }
 }
