@@ -13,7 +13,6 @@ export class UsersService {
 
   async create(createUserDto: UserDto) {
     const data: Prisma.UserCreateInput = {
-      name: createUserDto.name,
       username: createUserDto.username,
       email: createUserDto.email,
       password: createUserDto.password,
@@ -34,10 +33,6 @@ export class UsersService {
 
   async findAll(query: UserFilterDto) {
     const filters: Prisma.UserWhereInput = {};
-
-    if (query.name) {
-      filters.name = { contains: query.name, mode: 'insensitive' };
-    }
 
     if (query.username) {
       filters.username = { contains: query.username, mode: 'insensitive' };
