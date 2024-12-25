@@ -37,6 +37,21 @@ model User {
   activityLogs  ActivityLog[]
 }
 
+enum Role {
+  ADMIN
+  MANAGER
+  MODERATOR
+  SELLER
+  PARTNER
+  AFFILIATE
+  GUEST
+  ASSISTANT
+  SUPPORT
+  INVESTOR
+  BOT
+  USER
+}
+
 model UserSettings {
   id                   String   @id @default(cuid())
   userId               String   @unique 
@@ -387,19 +402,4 @@ model ActivityLog {
   ipAddress   String?           // IP de onde a ação foi realizada
   userAgent   String?           // Informação do navegador/dispositivo
   createdAt   DateTime @default(now())
-}
-
-enum Role {
-  ADMIN
-  MANAGER
-  MODERATOR
-  SELLER
-  PARTNER
-  AFFILIATE
-  GUEST
-  ASSISTANT
-  SUPPORT
-  INVESTOR
-  BOT
-  USER
 }
