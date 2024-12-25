@@ -16,13 +16,377 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  name      String?
   username  String   @unique
   email     String   @unique
   password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  stores        Store[]
+  orders        Order[]
+  reviews       Review[]
+  addresses     Address[]
+  bids          Bid[]
+  cart          Cart[]
+  payments      Payment[]
+  settings      UserSettings?
+  wishlists     Wishlist[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+}
+
+model UserSettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique 
+  user                 User     @relation(fields: [userId], references: [id])
+
+  // Informações pessoais e configurações
+  firstName            String?
+  lastName             String?
+  personalDocument     Int?
+  corporateName        String?
+  tradeName            String?
+  corporateDocument    Int?
+  phone                Int?
+  privacyPreference    String?  // Ex: "public", "private", "friendsOnly"
+  emailNotifications   Boolean @default(true) // Notificações por email
+  smsNotifications     Boolean @default(false) // Notificações por SMS
+  twoFactorEnabled     Boolean @default(false) // Se o MFA está habilitado
+  language             String?  @default("en") // Idioma preferido
+  theme                String?  @default("light") // Tema do dashboard (ex: "light", "dark")
+
+  // Verificações de conta
+  isEmailVerified      Boolean @default(false) // Verificação de email
+  isPhoneVerified      Boolean @default(false) // Verificação de telefone
+  isFaceVerified       Boolean @default(false) // Verificação de rosto (reconhecimento facial)
+  isDocumentVerified   Boolean @default(false) // Verificação de documentos (ex: RG, CPF, passaporte)
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  street    String
+  city      String
+  state     String
+  country   String
+  zipCode   String
+  sendTo    String
+  addressType String   // Ex: "shipping", "billing", etc.
+  isPrimary Boolean  @default(false) // Endereço principal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shipping  Shipping?
+}
+
+model Store {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id])
+  storeCategoryId String
+  storeCategory   StoreCategory @relation(fields: [storeCategoryId], references: [id])
+  products        Product[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model StoreCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  stores      Store[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  categoryId  String
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  isAuctioned Boolean @default(false) // Indica se o produto está em leilão
+  auction     Auction?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  attributes  ProductAttribute[]
+  stock       ProductStock[]  // Relacionamento de 1:N com ProductStock
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  reviews     Review[]
+  wishlists   Wishlist[]
+}
+
+model ProductAttributeType {
+  id          String      @id @default(cuid())
+  name        String    // Nome do atributo (ex: "Cor", "Tamanho")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacionamentos
+  options     ProductAttributeOption[]
+  productAttributes ProductAttribute[]  // Relação de 1 para N com ProductAttribute
+}
+
+model ProductAttributeOption {
+  id          String      @id @default(cuid())
+  attributeId String
+  attribute   ProductAttributeType @relation(fields: [attributeId], references: [id])
+  value       String    // Valor do atributo (ex: "Preto", "Vermelho", "Verde")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacionamentos
+  productAttributes ProductAttribute[]  // Relação de N para 1 com ProductAttribute
+  productStock  ProductStock[]
+  cartItemAttributeValues CartItemAttributeValue[]
+  orderItemAttributeValue OrderItemAttributeValue[]
+}
+
+model ProductAttribute {
+  id          String     @id @default(cuid())
+  productId   String
+  product     Product    @relation(fields: [productId], references: [id])
+  attributeId String
+  attribute   ProductAttributeType @relation(fields: [attributeId], references: [id])
+  dependsOnId String?    // Referência para o atributo de dependência (ex: Cor depende de Tamanho)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relacionamentos
+  options     ProductAttributeOption[]
+}
+
+model ProductStock {
+  id          String     @id @default(cuid())
+  productId   String
+  product     Product    @relation(fields: [productId], references: [id])
+  attributeId String
+  optionId    String
+  option      ProductAttributeOption @relation(fields: [optionId], references: [id])
+  stock       Int        @default(0)  // Estoque para a combinação de atributos
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ProductCategory {
+  id           String   @id @default(cuid())
+  name         String
+  parentId     String?
+  parent       ProductCategory? @relation("SubCategory", fields: [parentId], references: [id])
+  subCategories ProductCategory[] @relation("SubCategory")
+  products     Product[]
+}
+
+model Auction {
+  id           String    @id @default(cuid())
+  productId    String    @unique
+  product      Product   @relation(fields: [productId], references: [id])
+  startPrice   Float     // Preço inicial do leilão
+  currentPrice Float     // Preço atual baseado no maior lance
+  startDate    DateTime  // Data e hora de início do leilão
+  endDate      DateTime  // Data e hora de término do leilão
+  status       String    @default("active") // active, completed, canceled
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relacionamento com os lances
+  bids         Bid[]
+}
+
+model Bid {
+  id           String    @id @default(cuid())
+  auctionId    String
+  auction      Auction   @relation(fields: [auctionId], references: [id])
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  amount       Float     // Valor do lance
+  createdAt    DateTime  @default(now())
+}
+
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  price     Float
+
+  attributeValues CartItemAttributeValue[]
+}
+
+model CartItemAttributeValue {
+  id          String    @id @default(cuid())   // ID único
+  cartItemId  String    // Referência ao item do carrinho
+  cartItem    CartItem  @relation(fields: [cartItemId], references: [id])
+  optionId    String    // Referência à opção do atributo selecionado
+  selectedOption ProductAttributeOption @relation(fields: [optionId], references: [id])  // A opção escolhida (ex: "Preto", "P")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  status    String   @default("pending")    //status geral do pedido (ex.: "pending", "processing", "confirmed", "shipped").
+  total     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items     OrderItem[]
+  payment   Payment?
+  shipping  Shipping?
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  price       Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  attributeValues OrderItemAttributeValue[]  // Valores dos atributos selecionados
+}
+
+model OrderItemAttributeValue {
+  id          String    @id @default(cuid())   // ID único para o valor do atributo
+  orderItemId String    // Referência ao item do pedido
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  optionId    String    // Referência à opção do atributo selecionado
+  selectedOption ProductAttributeOption @relation(fields: [optionId], references: [id])  // A opção escolhida (ex: "Preto", "P")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  comment   String?
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  name        String   // Nome do método de pagamento (ex: "Cartão de Crédito", "PayPal", "Boleto")
+  description String?  // Descrição do método de pagamento
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamento com Payment
+  payments    Payment[]
+}
+
+model Payment {
+  id                String       @id @default(cuid())
+  orderId           String       @unique
+  order             Order        @relation(fields: [orderId], references: [id])
+  userId            String       // Usuário que fez o pagamento
+  user              User         @relation(fields: [userId], references: [id])
+  paymentMethodId   String
+  paymentMethod     PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  status            String       // Status do pagamento (ex: "pending", "completed", "failed")
+  amount            Float        // Valor total pago
+  paymentDate       DateTime     @default(now()) // Data e hora do pagamento
+  transactionId     String?      // Identificador da transação (se houver)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  transaction       Transaction?
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  paymentId   String    @unique
+  payment     Payment   @relation(fields: [paymentId], references: [id])
+  status      String    // Status da transação (ex: "success", "pending", "failed")
+  amount      Float     // Valor da transação
+  transactionType String  // Ex: "Compra", "Pagamento", "Reembolso", etc.
+  transactionDate DateTime @default(now()) // Data da transação
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Shipping {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+  addressId     String   @unique
+  address       Address  @relation(fields: [addressId], references: [id])
+  shippingMethod String   // Método de envio (ex: "Correios", "Transportadora")
+  shippingCost   Float
+  shippingStatus String   // Ex: "Enviado", "Em Transito", "Entregue"
+  trackingNumber String?
+  estimatedDelivery DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Coupon {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  discountAmount Float
+  expirationDate DateTime
+  minPurchaseAmount Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  status    String   // Ex: "Lido", "Não Lido"
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?           // ID do usuário que realizou a ação, se aplicável
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String            // Ex.: "Login", "Update Profile", "Create Product"
+  description String?           // Detalhes adicionais sobre a ação
+  ipAddress   String?           // IP de onde a ação foi realizada
+  userAgent   String?           // Informação do navegador/dispositivo
+  createdAt   DateTime @default(now())
 }
 
 enum Role {
