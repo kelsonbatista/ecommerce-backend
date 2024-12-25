@@ -7,11 +7,6 @@ export class UserDto {
 
   @IsString()
   @IsNotEmpty()
-  @Length(3, 50)
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
   @Length(3, 20)
   username: string;
 
