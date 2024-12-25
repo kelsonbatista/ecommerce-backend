@@ -142,6 +142,18 @@ model Product {
   orderItems  OrderItem[]
   reviews     Review[]
   wishlists   Wishlist[]
+  images      ProductImage[]
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String   // URL da imagem armazenada (no sistema de arquivos ou em um serviço como S3)
+  altText   String?  // Texto alternativo para acessibilidade
+  isPrimary Boolean  @default(false) // Indica se é a imagem principal do produto
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ProductAttributeType {
