@@ -5,18 +5,21 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
-import { UserDto, UserFilterDto } from './users.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async create(createUserDto: UserDto) {
+  async create(createUserDto: CreateUserDto) {
+    const { username, email, password, role } = createUserDto;
+
     const data: Prisma.UserCreateInput = {
-      username: createUserDto.username,
-      email: createUserDto.email,
-      password: createUserDto.password,
-      role: createUserDto.role,
+      username,
+      email,
+      password,
+      role,
     };
 
     try {
@@ -31,7 +34,7 @@ export class UsersService {
     }
   }
 
-  async findAll(query: UserFilterDto) {
+  async findAll(query: UpdateUserDto) {
     const filters: Prisma.UserWhereInput = {};
 
     if (query.username) {
@@ -59,11 +62,29 @@ export class UsersService {
     return await this.databaseService.user.findUnique({ where: { id } });
   }
 
-  async update(id: string, updateUserDto: Prisma.UserUpdateInput) {
-    return await this.databaseService.user.update({
-      where: { id },
-      data: updateUserDto,
-    });
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const { username, email, password, role } = updateUserDto;
+
+    const data: Prisma.UserUpdateInput = {
+      username,
+      email,
+      password,
+      role,
+    };
+
+    try {
+      return await this.databaseService.user.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Username or email already exists');
+        }
+      }
+      throw error;
+    }
   }
 
   async remove(id: string) {
