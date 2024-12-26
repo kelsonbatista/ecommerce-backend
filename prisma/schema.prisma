@@ -68,7 +68,7 @@ model UserSettings {
   privacyPreference    String?  // Ex: "public", "private", "friendsOnly"
   emailNotifications   Boolean @default(true) // Notificações por email
   smsNotifications     Boolean @default(false) // Notificações por SMS
-  twoFactorEnabled     Boolean @default(false) // Se o MFA está habilitado
+  twoFactorEnabled     Boolean @default(false) // Se o MFA está habcm54g4bkp0000nzfttw2eimmxilitado
   language             String?  @default("en") // Idioma preferido
   theme                String?  @default("light") // Tema do dashboard (ex: "light", "dark")
 
@@ -101,7 +101,7 @@ model Address {
 
 model Store {
   id              String   @id @default(cuid())
-  name            String
+  name            String   @unique
   description     String?
   ownerId         String
   owner           User     @relation(fields: [ownerId], references: [id])
@@ -114,7 +114,7 @@ model Store {
 
 model StoreCategory {
   id          String   @id @default(cuid())
-  name        String
+  name        String   @unique
   description String?
   stores      Store[]
   createdAt   DateTime @default(now())
